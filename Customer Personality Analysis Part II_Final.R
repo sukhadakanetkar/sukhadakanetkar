@@ -3,23 +3,18 @@ library(MASS)
 library(tidyverse)
 library(ggplot2)
 library(gplots)
-library(GGally)
-set.seed(1996)
 library(ggpubr)
-library(factoextra)
-library(GGally)
-library(plotly)
-library(devtools)
-#install_github("ggobi/ggally")
-#install.packages("GGally")
-packages = c('GGally', 'plotly', 'parcoords', 'tidyverse')
-
-for(p in packages){
-  if(!require(p, character.only = T)){
-    install.packages(p)
-  }
-}
+#install.packages("InformationValue")
+library(InformationValue)
+library(corrplot)
+library(caret)
+library(pROC)
+#install.packages("ROCR")
+library(ROCR)
 #https://www.kaggle.com/imakash3011/customer-personality-analysis
+#############################################################################################
+#Logistic Regression
+
 setwd("/Users/macbookpro/Documents/665_BD")
 PerSet <- read.csv("marketing_campaign (1).csv", sep = "\t")
 View(PerSet)
@@ -31,99 +26,6 @@ PerSet$Spending <-  PerSet$MntWines+
                     PerSet$MntFishProducts
 
 View(PerSet)
-###K Means
-#Variables excluded for the analysis:
-PerSetKM = subset(PerSet, select = -c(ID,
-                                      Year_Birth,
-                                      Education,
-                                      Marital_Status,
-                                      Income,
-                                      Kidhome,
-                                      Teenhome,
-                                      Dt_Customer,
-                                      Recency,
-                                      NumDealsPurchases,
-                                      NumWebPurchases,
-                                      NumCatalogPurchases,
-                                      NumStorePurchases,
-                                      NumWebVisitsMonth,
-                                      AcceptedCmp3,
-                                      AcceptedCmp4,
-                                      AcceptedCmp5,
-                                      AcceptedCmp1,
-                                      AcceptedCmp2,
-                                      Complain,
-                                      Z_CostContact,
-                                      Z_Revenue,
-                                      Response,
-                                      Spending))
-
-View(PerSetKM)
-
-#Outliers
-ggparcoord(PerSetKM,
-           columns = 1:6, groupColumn = 1,
-           scale = "uniminmax", 
-           title = "Parallel Coord. Plot of outliers")
-
-#Observations removed
-max(PerSetKM$MntMeatProducts)
-PerSetKM2 <- PerSetKM[-c(22, 165),]
-## Perform K-Means with 2 clusters and check the results 
-## the set.seed() could use any number since the original starting point is randomly selected
-set.seed(7)
-km1 = kmeans(PerSetKM2, 3, nstart=100)
-km1
-
-#"Elbow method"
-install.packages("factoextra")
-library(factoextra)
-fviz_nbclust(PerSetKM2, kmeans, method = "wss") +
-  geom_vline(xintercept = 4, linetype = 2)+
-  labs(subtitle = "Elbow method")
-
-#Second analysis with the adjusted number of clusters.
-set.seed(7)
-kmNC = kmeans(PerSetKM2, 2, nstart=100)
-kmNC
-
-# Just check the plot to find the optimal K
-wss <- (nrow(PerSetKM2)-1)*sum(apply(PerSetKM2,2,var))
-for (i in 2:15) wss[i] <- sum(kmeans(PerSetKM2,
-                                     centers=i)$Education)
-plot(1:15, wss, type="b", xlab="Number of Clusters",
-     ylab="Within groups sum of squares",
-     main="Assessing the Optimal Number of Clusters with the Elbow Method",
-     pch=20, cex=2)
-
-#Plot Cluster 1
-fviz_cluster(km1, data = PerSetKM2[, -2],
-             palette = c("#2E9FDF", "#00AFBB", "#E7B800"), 
-             geom = "point",
-             ellipse.type = "convex", 
-             ggtheme = theme_bw()
-)
-
-#Plot Clusters 2
-plot(PerSetKM2, col =(km1$cluster +1) , main="K-Means result with 3 clusters", pch=20, cex=2)
-
-#plot Clusters 3
-ggparcoord(PerSetKM,
-           columns = 1:6, groupColumn = 1,
-           scale = "uniminmax", 
-           title = "Parallel Coord. Plot of outliers")
-
-#############################################################################################
-#Logistic Regression
-
-#install.packages("InformationValue")
-library(InformationValue)
-library(corrplot)
-library(caret)
-library(pROC)
-#install.packages("ROCR")
-library(ROCR)
-
 PerSet <- data %>%
   drop_na()
 
