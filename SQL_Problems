@@ -1,0 +1,112 @@
+https://platform.stratascratch.com/coding/
+
+1. Distances Traveled
+Find the top 10 users that have traveled the greatest distance. Output their id, name and a total distance traveled.
+
+select ll.id, lu.name, SUM(ll.distance) as total_distance
+from lyft_rides_log ll
+join lyft_users lu
+on ll.user_id = lu.id
+GROUP BY ll.user_id
+ORDER BY total_distance desc
+Limit 10;
+
+2. Cities With The Most Expensive Homes
+Write a query that identifies cities with higher than average home prices when compared to the national average. Output the city names.
+
+select city, avg(mkt_price)
+from zillow_transactions a
+GROUP BY city
+HAVING AVG(a.mkt_price) > (select AVG(mkt_price) 
+from zillow_transactions);
+
+
+4. Host Popularity Rental Prices
+You’re given a table of rental property searches by users. The table consists of search results and outputs host information for searchers. Find the minimum, average, maximum rental prices for each host’s popularity rating. The host’s popularity rating is defined as below: 0 reviews: New 1 to 5 reviews: Rising 6 to 15 reviews: Trending Up 16 to 40 reviews: Popular more than 40 reviews: Hot Tip: The `id` column in the table refers to the search ID. You'll need to create your own host_id by concating price, room_type, host_since, zipcode, and number_of_reviews. Output host popularity rating and their minimum, average and maximum rental prices.
+
+
+SELECT number_of_reviews, AVG(price) AS avg_price, min(price) as min_price, max(price) as max_price,
+CASE
+    when number_of_reviews = 0 THEN 'New'
+    when number_of_reviews BETWEEN 1 AND 5 THEN 'Rising'
+    when number_of_reviews BETWEEN 6 AND 15 THEN 'Trending Up'
+    when number_of_reviews BETWEEN 16 AND 40 THEN 'Popular'
+    when number_of_reviews > 40 THEN 'Hot'
+    END AS host_rating
+FROM airbnb_host_searches
+GROUP BY host_rating;
+
+
+5. Finding User Purchases
+Write a query that'll identify returning active users. A returning active user is a user that has made a second purchase within 7 days of any other of their purchases. Output a list of user_ids of these returning active users.
+with temp AS
+(
+select a.user_id, 
+    DATEDIFF(t.created_at, a.created_at) as date_diff
+from amazon_transactions a
+join amazon_transactions t
+on a.user_id = t.user_id
+where a.id <> t.id
+) select distinct user_id from temp
+where date_diff between -7 AND 7
+order by user_id ;
+
+
+6. Monthly Percentage Difference
+Given a table of purchases by date, calculate the month-over-month percentage change in revenue. The output should include the year-month date (YYYY-MM) and percentage change, rounded to the 2nd decimal point, and sorted from the beginning of the year to the end of the year. The percentage change column will be populated from the 2nd month forward and can be calculated as ((this month's revenue - last month's revenue) / last month's revenue)*100.
+
+with temp AS 
+(
+select DATE_FORMAT(created_at, "%Y-%m") AS year_month1, SUM(value) as revenue
+from sf_transactions
+Group by year_month1
+order by year_month1
+)
+select year_month1,
+    ROUND((((revenue - LAG(revenue) OVER(order by year_month1))/LAG(revenue)OVER(order by year_month1))*100), 2)
+    as revenue_diff_pct
+    from temp;
+
+7. Class Performance
+You are given a table containing assignment scores of students in a class. Write a query that identifies the largest difference in total score of all assignments. Output just the difference in total score between the two students.
+
+with cte as
+(
+select student, (assignment1 + assignment2 + assignment3) as total_score 
+from box_scores
+order by total_score
+) select MAX(total_score)-MIN(total_score) as difference
+from cte;
+
+8. Revenue Over Time
+Find the 3-month rolling average of total revenue from purchases given a table with users, their purchase amount, and date purchased. Do not include returns which are represented by negative purchase values. Output the year-month (YYYY-MM) and 3-month rolling average of revenue, sorted from earliest month to latest month. A 3-month rolling average is defined by calculating the average total revenue from all user purchases for the current month and previous two months. The first two months will not be a true 3-month rolling average since we are not given data from last year. Assume each month has at least one purchase.
+
+with cte as
+(
+select DATE_FORMAT(created_at, '%Y-%m') as yearmonth, SUM(purchase_amt) as revenue
+from amazon_purchases
+group by yearmonth
+) select yearmonth,
+#LAG(revenue) OVER (order by yearmonth) as 3rd_month,
+#AVG((LAG(revenue, 2) OVER (order by yearmonth)) + LAG(revenue) OVER (order by yearmonth) + revenue) as total_3months_revenue
+avg(revenue) OVER (order by yearmonth 
+                    rows between 2 preceding and current row) as rolling_avg
+from cte;
+
+
+
+
+
+9. Salaries Differences
+Write a query that calculates the difference between the highest salaries found in the marketing and engineering departments. Output just the absolute difference in salaries.
+
+with cte as
+(
+select (select max(e.salary) from db_employee e join db_dept d
+on e.department_id = d.id 
+where d.department = 'marketing') as salary1,
+(select distinct max(e.salary) from db_employee e join db_dept d
+on e.department_id = d.id 
+where d.department = 'engineering') as salary2
+from db_employee
+) select max(salary1) - max(salary2 ) as difference from cte;
